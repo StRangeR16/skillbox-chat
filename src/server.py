@@ -66,6 +66,7 @@ class Client(LineOnlyReceiver):
                 login = message.replace("login:", "")  # вырезаем часть после :
                 if login in [user.login for user in self.factory.clients]:
                     self.sendLine(f"Логин {login} занят, попробуйте другой".encode())
+                    self.transport.loseConnection()
                 else:
                     self.login = login
                     notification = f"New user: {self.login}"  # формируем уведомление о новом клиенте
