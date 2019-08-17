@@ -63,15 +63,20 @@ class Client(LineOnlyReceiver):
         # если логин еще не зарегистрирован
         if self.login is None:
             if message.startswith("login:"):  # проверяем, чтобы в начале шел login:
-                self.login = message.replace("login:", "")  # вырезаем часть после :
-
-                notification = f"New user: {self.login}"  # формируем уведомление о новом клиенте
-                self.factory.notify_all_users(notification)  # отсылаем всем в чат
+                login = message.replace("login:", "")  # вырезаем часть после :
+                if login in [user.login for user in self.factory.clients]:
+                    self.sendLine(f"Логин {login} занят, попробуйте другой".encode())
+                else:
+                    self.login = login
+                    notification = f"New user: {self.login}"  # формируем уведомление о новом клиенте
+                    self.factory.notify_all_users(notification)  # отсылаем всем в чат
+                    self.factory.send_history(self) # отсылаем историю чата
             else:
                 self.sendLine("Invalid login".encode())  # шлем уведомление, если в сообщении ошибка
         # если логин уже есть и это следующее сообщение
         else:
             format_message = f"{self.login}: {message}"  # форматируем сообщение от имени клиента
+            self.factory.history.append(format_message) # adding message to history
 
             # отсылаем всем в чат и в консоль сервера
             self.factory.notify_all_users(format_message)
@@ -83,6 +88,7 @@ class Server(ServerFactory):
 
     clients: list  # список клиентов
     protocol = Client  # протокол обработки клиента
+    history = []
 
     def __init__(self):
         """
@@ -112,6 +118,20 @@ class Server(ServerFactory):
         # отправим всем подключенным клиентам
         for user in self.clients:
             user.sendLine(data)
+    def send_history(self, client):
+        """
+        Вывод последних 10 сообщений новому клиенту
+        Если сообщений меньше - вывод всей истории
+        :param client: Клиент для получения сообщений
+        :return:
+        """
+        chat_history: str = ""
+        if len(self.history) > 10:
+            for i in range(10,1,-1):
+                client.sendLine(self.history[len(self.history) - i].encode())
+        else:
+            for message in self.history:
+                client.sendLine(message.encode())
 
 
 if __name__ == '__main__':
