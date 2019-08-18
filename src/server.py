@@ -65,7 +65,7 @@ class Client(LineOnlyReceiver):
             if message.startswith("login:"):  # проверяем, чтобы в начале шел login:
                 login = message.replace("login:", "")  # вырезаем часть после :
                 if login in [user.login for user in self.factory.clients]:
-                    self.sendLine(f"Логин {login} занят, попробуйте другой".encode())
+                    self.sendLine(f"Login {login} already exists!".encode())
                     self.transport.loseConnection()
                 else:
                     self.login = login
